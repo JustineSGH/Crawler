@@ -6,83 +6,61 @@ $url = $_POST['url'];
 
 function crawl($url){
 
-    $ch = curl_init($url);
+  $ch = curl_init($url);
 
-    if(file_exists('contenu_page.txt')){
-      unlink('contenu_page.txt');
-    }
+  if(file_exists('contenu_page.txt')){
+    unlink('contenu_page.txt');
+  }
 
-    $fp_donnees = fopen('contenu_page.txt', 'a');
-    curl_setopt($ch, CURLOPT_FILE, $fp_donnees);
-    curl_setopt($ch, CURLOPT_HEADER, 0);
-    curl_exec($ch);
-    curl_close($ch);
-    fclose($fp_donnees);
-    $contenu = file_get_contents('contenu_page.txt');
+  $fp_donnees = fopen('contenu_page.txt', 'a');
+  curl_setopt($ch, CURLOPT_FILE, $fp_donnees);
+  curl_setopt($ch, CURLOPT_HEADER, 0);
+  curl_exec($ch);
+  curl_close($ch);
+  fclose($fp_donnees);
+  $contenu = file_get_contents('contenu_page.txt');
 
-    preg_match_all('#(<span class="final-price" data-cerberus="txt_plp_discountedPrice1"> <span itemprop="price">(.*)</span>(.*)</span>|<strong class="final-price" data-cerberus="txt_plpProduit_discountedPrice1">(.*)</strong>)#', $contenu, $prix);
-    preg_match_all('#(<h2 data-cerberus="txt_pdp_productName1" itemprop="name">(.+)</h2>|<div class="title" data-cerberus="lnk_plpProduit_productName1">(.+)</div>)#', $contenu, $nom);
-  
-    $nom[0] = preg_replace('#<h2 data-cerberus="txt_pdp_productName1" itemprop="name">#',  '', $nom[0]);
-    $nom[0] = preg_replace('#</h2>#', '', $nom[0]);
+  //extraction des prix
+  preg_match_all('#(<span class="final-price" data-cerberus="txt_plp_discountedPrice1"> <span itemprop="price">(.*)</span>(.*)</span>|<strong class="final-price" data-cerberus="txt_plpProduit_discountedPrice1">(.*)</strong>)#', $contenu, $prix);
+  //extraction des noms
+  preg_match_all('#(<h2 data-cerberus="txt_pdp_productName1" itemprop="name">(.+)</h2>|<div class="title" data-cerberus="lnk_plpProduit_productName1">(.+)</div>)#', $contenu, $nom);
+  //extraction des liens 
+  preg_match_all('#\<a class="link" href="(.+)">#', $contenu, $liens_extraits);
+  $liens_extraits[0] = preg_replace('#<a class="link">#', '', $liens_extraits[0]);
 
-    echo "<table class='table table-bordered'>
-        <tr>
-          <th>Nom</th>
-          <th>Prix</th>
-        </tr>";
-    	for($i=0; $i< count($prix[0]); $i++){
-      	echo"
-      	<tr> 
-        	<th>";
-        			echo $nom[0][$i]; echo"</th>
-        	<th>"; echo $prix[0][$i]; echo"</th>
-      	</tr>";
-    	}
-    echo" </table>";
+  $nom[0] = preg_replace('#<h2 data-cerberus="txt_pdp_productName1" itemprop="name">#',  '', $nom[0]);
+  $nom[0] = preg_replace('#</h2>#', '', $nom[0]);
 
-
-    //extraction des liens 
-   /* preg_match_all('#"/?[a-zA-Z0-9_./-]+.(php|html|htm|aspx)"#', $contenu, $liens_extraits);
-    if(file_exists('liens.txt')){
-    	 $fichier_liens = fopen('liens.txt', 'a');
-
-    	foreach ($liens_extraits[0] as $element) {
-    		$fichier_liens = fopen('liens.txt', 'a');
-    		$gestion_doublons = file_get_contents('liens.txt');
-    		$element = preg_replace('#"#', '', $element);
-    		$follow_url = $element;
-    		$pattern = '#'.$follow_url.'#';
-    		if (!preg_match($pattern, $gestion_doublons)) {
-          		fputs($fichier_liens, $follow_url);
-      		}
-    	}
-    }
-    else {
-    	$fp_fichier_liens = fopen('liens.txt', 'a');
-
-	    foreach ($liens_extraits[0] as $element) {
-	        $element = preg_replace('#"#', '', $element);
-	        $follow_url = $element;
-	        fputs($fichier_liens, $follow_url);
-	    }
+  echo "<table class='table table-bordered'>
+    <tr>
+      <th>Nom</th>
+      <th>Prix</th>
+    </tr>";
+  	for($i=0; $i < count($prix[0]); $i++){
+    	echo"
+    	<tr> 
+      	<th>"; echo $nom[0][$i]; echo"</th>
+      	<th>"; echo $prix[0][$i]; echo"</th>
+    	</tr>";
   	}
-  fclose($fichier_liens);*/
+  echo" </table>";
+  
+  echo "<table class='table table-bordered'>
+    <tr>
+      <th>Liens</th>
+    </tr>";
+    for($i=0; $i < count($liens_extraits[0]); $i++){
+      echo"
+      <tr> 
+        <th>";
+            echo $liens_extraits[0][$i]; echo"</th>
+      </tr>";
+    }
+  echo" </table>";
+
+
 }
 crawl($url);
-
-/*$lire_autres_pages = fopen('liens.txt', 'r');
-		
-$numero_de_ligne = 1;
-
-while(!feof($lire_autres_pages)) {
-  $page_suivante = $url;
-  $page_suivante .= fgets($lire_autres_pages);
-  echo $numero_de_ligne . ' Analyses en cours, page : ' .  $page_suivante . "\n";
-  $numero_de_ligne++;
-  crawl($page_suivante);
-}
-fclose ($lire_autres_pages);*/
 
 ?>
 
