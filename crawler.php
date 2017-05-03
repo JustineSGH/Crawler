@@ -1,7 +1,7 @@
 <?php
 
 //site web à crawler
-//prendre cette url : 'http://www.laredoute.fr/pplp/100/84100/142558/cat-84113.aspx#opeco=hp:zsb2:blanc:pe17s13';
+//prendre cette url : 'http://www.laredoute.fr/pplp/100/84100/142558/cat-84113.aspx';
 $url = $_POST['url'];
 
 function crawl($url){
@@ -24,10 +24,7 @@ function crawl($url){
   preg_match_all('#(<span class="final-price" data-cerberus="txt_plp_discountedPrice1"> <span itemprop="price">(.*)</span>(.*)</span>|<strong class="final-price" data-cerberus="txt_plpProduit_discountedPrice1">(.*)</strong>)#', $contenu, $prix);
   //extraction des noms
   preg_match_all('#(<h2 data-cerberus="txt_pdp_productName1" itemprop="name">(.+)</h2>|<div class="title" data-cerberus="lnk_plpProduit_productName1">(.+)</div>)#', $contenu, $nom);
-  //extraction des liens 
-  preg_match_all('#\<a class="link" href="(.+)">#', $contenu, $liens_extraits);
-  $liens_extraits[0] = preg_replace('#<a class="link">#', '', $liens_extraits[0]);
-
+  
   $nom[0] = preg_replace('#<h2 data-cerberus="txt_pdp_productName1" itemprop="name">#',  '', $nom[0]);
   $nom[0] = preg_replace('#</h2>#', '', $nom[0]);
 
@@ -45,6 +42,9 @@ function crawl($url){
   	}
   echo" </table>";
   
+  /*
+  //extraction des liens 
+  preg_match_all('#"/?[a-zA-Z0-9_./-]+.(php|html|htm|aspx)"#', $contenu, $liens_extraits);
   echo "<table class='table table-bordered'>
     <tr>
       <th>Liens</th>
@@ -57,11 +57,15 @@ function crawl($url){
       </tr>";
     }
   echo" </table>";
-
+  */
 
 }
 crawl($url);
 
+
+$var = '#facets=pgnt*3';
+$pgnt = $_POST['url'] . $var;
+echo $pgnt;
 ?>
 
 <!DOCTYPE html>
