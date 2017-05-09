@@ -1,7 +1,7 @@
 <?php
 
 //site web à crawler
-//prendre cette url : 'http://www.laredoute.fr/pplp/100/84100/142558/cat-84113.aspx';
+//prendre cette url : 'http://www.laredoute.fr/pplp/100/84100/142558/cat-84113.aspx?pgnt=1';
 $url = $_POST['url'];
 
 function crawl($url){
@@ -17,9 +17,8 @@ function crawl($url){
   curl_setopt($ch, CURLOPT_HEADER, 0);
   curl_exec($ch);
   curl_close($ch);
-  fclose($fp_donnees);
   $contenu = file_get_contents('contenu_page.txt');
-
+  
   //extraction des prix
   preg_match_all('#(<span class="final-price" data-cerberus="txt_plp_discountedPrice1"> <span itemprop="price">(.*)</span>(.*)</span>|<strong class="final-price" data-cerberus="txt_plpProduit_discountedPrice1">(.*)</strong>)#', $contenu, $prix);
   //extraction des noms
@@ -28,6 +27,7 @@ function crawl($url){
   $nom[0] = preg_replace('#<h2 data-cerberus="txt_pdp_productName1" itemprop="name">#',  '', $nom[0]);
   $nom[0] = preg_replace('#</h2>#', '', $nom[0]);
 
+  echo count($prix[0]). " produits ont été parcourus.";
   echo "<table class='table table-bordered'>
     <tr>
       <th>Nom</th>
@@ -36,16 +36,19 @@ function crawl($url){
   	for($i=0; $i < count($prix[0]); $i++){
     	echo"
     	<tr> 
-      	<th>"; echo $nom[0][$i]; echo"</th>
+      	<th>"; echo $nom[0][$i]; 
+         echo"</th>
       	<th>"; echo $prix[0][$i]; echo"</th>
     	</tr>";
   	}
   echo" </table>";
-  
-  /*
-  //extraction des liens 
-  preg_match_all('#"/?[a-zA-Z0-9_./-]+.(php|html|htm|aspx)"#', $contenu, $liens_extraits);
-  echo "<table class='table table-bordered'>
+ 
+
+  //Les liens paginées 
+  preg_match_all('#http://www.laredoute.fr/pplp/?[a-zA-Z0-9_./-]/?[a-zA-Z0-9_./-]/?[a-zA-Z0-9_./-]+.aspx\?pgnt=(.+?)#', $contenu, $liens_extraits);
+  $tab_liens = array_unique($liens_extraits[0]);
+  reset($tab_liens);
+  /*echo "<table class='table table-bordered'>
     <tr>
       <th>Liens</th>
     </tr>";
@@ -56,16 +59,29 @@ function crawl($url){
             echo $liens_extraits[0][$i]; echo"</th>
       </tr>";
     }
-  echo" </table>";
-  */
+  echo" </table>";*/
+  fclose($fp_donnees);
 
+  while(list(, $element) = each($tab_liens)){
+    echo "Page suivante à Crawler : $element<br />\n";
+  }
+
+  if(file_exists('contenu_paginee.txt')){
+    unlink('contenu_paginee.txt');
+  }
+  $fp = fopen('contenu_paginee.txt', 'a');
+  
+  foreach ($tab_liens as $element){
+  $suivant = file_get_contents($element);
+  fputs($fp, $suivant);
+  }
+  
+  //crawl($element);
+  fclose($fp);
 }
 crawl($url);
 
 
-$var = '#facets=pgnt*3';
-$pgnt = $_POST['url'] . $var;
-echo $pgnt;
 ?>
 
 <!DOCTYPE html>
