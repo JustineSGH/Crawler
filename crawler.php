@@ -1,3 +1,23 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8"/>
+    <title>Devoir</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  </head>
+  <body>
+    <nav class="navbar navbar-inverse">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="#">Crawler</a>
+        </div>
+        <form class="navbar-form navbar-right" action="index.html">
+          <button type="submit" class="btn btn-warning">Retour</button>
+        </form>
+      </div>
+    </nav>
+  </body>
+</html>
 <?php
 
 //site web à crawler
@@ -27,7 +47,9 @@ function crawl($url){
   $nom[0] = preg_replace('#<h2 data-cerberus="txt_pdp_productName1" itemprop="name">#',  '', $nom[0]);
   $nom[0] = preg_replace('#</h2>#', '', $nom[0]);
 
-  echo count($prix[0]). " produits ont été parcourus.";
+  echo count($prix[0]). " produits ont été parcourus.<br />";
+  echo "Le moins cher des produits est à " . min($prix[0]) . ".<br />";
+  echo "Le plus cher des produits est à " . max($prix[0]). ".<br />";
   echo "<table class='table table-bordered'>
     <tr>
       <th>Nom</th>
@@ -36,30 +58,19 @@ function crawl($url){
   	for($i=0; $i < count($prix[0]); $i++){
     	echo"
     	<tr> 
-      	<th>"; echo $nom[0][$i]; 
+      	<th>"; echo $nom[0][$i];
          echo"</th>
       	<th>"; echo $prix[0][$i]; echo"</th>
     	</tr>";
   	}
   echo" </table>";
- 
+  
 
   //Les liens paginées 
-  preg_match_all('#http://www.laredoute.fr/pplp/?[a-zA-Z0-9_./-]/?[a-zA-Z0-9_./-]/?[a-zA-Z0-9_./-]+.aspx\?pgnt=(.+?)#', $contenu, $liens_extraits);
+  preg_match_all('#http://www.laredoute.fr/pplp/?[a-zA-Z0-9_./-]/?[a-zA-Z0-9_./-]/?[a-zA-Z0-9_./-]+.aspx\?pgnt=[0-9]{1,2}#', $contenu, $liens_extraits);
   $tab_liens = array_unique($liens_extraits[0]);
   reset($tab_liens);
-  /*echo "<table class='table table-bordered'>
-    <tr>
-      <th>Liens</th>
-    </tr>";
-    for($i=0; $i < count($liens_extraits[0]); $i++){
-      echo"
-      <tr> 
-        <th>";
-            echo $liens_extraits[0][$i]; echo"</th>
-      </tr>";
-    }
-  echo" </table>";*/
+
   fclose($fp_donnees);
 
   while(list(, $element) = each($tab_liens)){
@@ -69,29 +80,17 @@ function crawl($url){
   if(file_exists('contenu_paginee.txt')){
     unlink('contenu_paginee.txt');
   }
-  $fp = fopen('contenu_paginee.txt', 'a');
+  $fichier_liens = fopen('contenu_paginee.txt', 'a');
   
   foreach ($tab_liens as $element){
-  $suivant = file_get_contents($element);
-  fputs($fp, $suivant);
+    $suivant = file_get_contents($element);
+    fputs($fichier_liens, $suivant);
   }
-  
-  //crawl($element);
-  fclose($fp);
+  fclose($fichier_liens);
 }
 crawl($url);
 
-
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-  <head>
-    <meta charset="utf-8"/>
-    <title>Devoir</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-  </head>
-  <body>
-  </body>
-</html>
+
 
