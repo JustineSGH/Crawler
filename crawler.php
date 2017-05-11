@@ -31,7 +31,6 @@ function crawl($url){
   if(file_exists('contenu_page.txt')){
     unlink('contenu_page.txt');
   }
-
   $fp_donnees = fopen('contenu_page.txt', 'a');
   curl_setopt($ch, CURLOPT_FILE, $fp_donnees);
   curl_setopt($ch, CURLOPT_HEADER, 0);
@@ -65,9 +64,16 @@ function crawl($url){
   	}
   echo" </table>";
   
-
   //Les liens paginées 
-  preg_match_all('#http://www.laredoute.fr/pplp/?[a-zA-Z0-9_./-]/?[a-zA-Z0-9_./-]/?[a-zA-Z0-9_./-]+.aspx\?pgnt=[0-9]{1,2}#', $contenu, $liens_extraits);
+ preg_match_all('#<li class="next" data-cerberus="lnk_plpProduit_paginationNext1"><a data-page="(.+)" href="http://www.laredoute.fr/pplp/?[a-zA-Z0-9_./-]/?[a-zA-Z0-9_./-]/?[a-zA-Z0-9_./-]+.aspx\?pgnt=[0-9]{1,2}"></a></li>#iU', $contenu, $liens_extraits);
+  $liens_extraits[0] = preg_replace('#<li class="next" data-cerberus="lnk_plpProduit_paginationNext1">#', '', $liens_extraits[0]);
+  $liens_extraits[0] = preg_replace('#<a data-page="([0-9])*"#', '', $liens_extraits[0]);
+  $liens_extraits[0] = preg_replace('#href=#', '', $liens_extraits[0]);
+  $liens_extraits[0] = preg_replace('#</a>#', '', $liens_extraits[0]);
+  $liens_extraits[0] = preg_replace('#</li>#', '', $liens_extraits[0]);
+  $liens_extraits[0] = preg_replace('#>#', '', $liens_extraits[0]);//j'enlève les fermetures de balises
+  $liens_extraits[0] = preg_replace('#"#', '', $liens_extraits[0]);//j'enlève les guillemets
+  $liens_extraits[0] = preg_replace('# #', '', $liens_extraits[0]);//j'enlève un espace qui était en trop
   $tab_liens = array_unique($liens_extraits[0]);
   reset($tab_liens);
 
@@ -76,20 +82,20 @@ function crawl($url){
   while(list(, $element) = each($tab_liens)){
     echo "Page suivante à Crawler : $element<br />\n";
   }
-
-  if(file_exists('contenu_paginee.txt')){
-    unlink('contenu_paginee.txt');
+  if(file_exists('contenu_autre_page.txt')){
+    unlink('contenu_autre_page.txt');
   }
-  $fichier_liens = fopen('contenu_paginee.txt', 'a');
-  
-  foreach ($tab_liens as $element){
+  $fichier_liens = fopen('contenu_autre_page.txt', 'a');
+
+ foreach ($tab_liens as $element){
+    ini_set('max_execution_time', 300);//5 minutes
     $suivant = file_get_contents($element);
     fputs($fichier_liens, $suivant);
+    crawl($element);
   }
   fclose($fichier_liens);
 }
 crawl($url);
-
 ?>
 
 
