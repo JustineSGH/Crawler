@@ -19,33 +19,48 @@
   </body>
 </html>
 <?php
-
-//site web à crawler
-//prendre cette url : 'http://www.laredoute.fr/pplp/100/84100/142558/cat-84113.aspx?pgnt=1';
+ob_start();
+require('fpdf/fpdf.php');
+define('EURO',chr(128));
+ //Je récupère l'URL du site à crawler
 $url = $_POST['url'];
 
 function crawl($url){
-
+  //Initialisation de cURL
   $ch = curl_init($url);
-
+  //Suppresion du fichier s'il existe
   if(file_exists('contenu_page.txt')){
     unlink('contenu_page.txt');
   }
   $fp_donnees = fopen('contenu_page.txt', 'a');
-  curl_setopt($ch, CURLOPT_FILE, $fp_donnees);
-  curl_setopt($ch, CURLOPT_HEADER, 0);
-  curl_exec($ch);
-  curl_close($ch);
+  curl_setopt($ch, CURLOPT_FILE, $fp_donnees);//définit une option de transmission
+  curl_exec($ch);//exécute une session 
+  curl_close($ch);//ferme la session cURL
+  //je lis et récupère les données html de la page
   $contenu = file_get_contents('contenu_page.txt');
   
-  //extraction des prix
-  preg_match_all('#(<span class="final-price" data-cerberus="txt_plp_discountedPrice1"> <span itemprop="price">(.*)</span>(.*)</span>|<strong class="final-price" data-cerberus="txt_plpProduit_discountedPrice1">(.*)</strong>)#', $contenu, $prix);
-  //extraction des noms
-  preg_match_all('#(<h2 data-cerberus="txt_pdp_productName1" itemprop="name">(.+)</h2>|<div class="title" data-cerberus="lnk_plpProduit_productName1">(.+)</div>)#', $contenu, $nom);
+  //extraction des prix grâce à une expression régulière
+  preg_match_all('#(<span class="final-price" data-cerberus="txt_plp_discountedPrice1"><span itemprop="price">(.*)</span>(.*)</span>|<strong class="final-price" data-cerberus="txt_plpProduit_discountedPrice1">(.*)</strong>|<meta itemprop="price" content="(.+)")#iU', $contenu, $prix);
+  $prix[0] = preg_replace('#<strong class="final-price" data-cerberus="txt_plpProduit_discountedPrice1">#', '', $prix[0]);
+  $prix[0] = preg_replace('#</strong>#', '', $prix[0]);
+  $prix[0] = preg_replace('#<span class="final-price" data-cerberus="txt_plp_discountedPrice1"><span itemprop="price">#', '', $prix[0]);
+  $prix[0] = preg_replace('#</span>#', '', $prix[0]);
+  $prix[0] = preg_replace('#<meta itemprop="price" content=#', '', $prix[0]);
+  $prix[0] = preg_replace('#"#', '', $prix[0]);
+  $prix[0] = str_replace('€', '', $prix[0]);
   
-  $nom[0] = preg_replace('#<h2 data-cerberus="txt_pdp_productName1" itemprop="name">#',  '', $nom[0]);
-  $nom[0] = preg_replace('#</h2>#', '', $nom[0]);
+  //extraction des noms
+  preg_match_all('#(<h2 data-cerberus="txt_pdp_productName1" itemprop="name">(.+)</h2>|<div class="title" data-cerberus="lnk_plpProduit_productName1">(.+)</div>|<span class="title bold inline" itemprop="name">(.+)</span>)#iU', $contenu, $nom);
 
+  //je remplace les informations dont je n'ai pas besoin.
+  $nom[0] = preg_replace('#<h2 data-cerberus="txt_pdp_productName1" itemprop="name">#',  '', $nom[0]);
+  $nom[0] = preg_replace('#</h2>#', '', $nom[0]);  
+  $nom[0] = preg_replace('#<div class="title" data-cerberus="lnk_plpProduit_productName1">#',  '', $nom[0]);
+  $nom[0] = preg_replace('#</div>#', '', $nom[0]); 
+  $nom[0] = preg_replace('#<span class="title bold inline" itemprop="name">#',  '', $nom[0]);
+  $nom[0] = preg_replace('#</span>#', '', $nom[0]);
+
+  //J'affiche ce que j'ai récupéré grâce aux regex.
   echo count($prix[0]). " produits ont été parcourus.<br />";
   echo "Le moins cher des produits est à " . min($prix[0]) . ".<br />";
   echo "Le plus cher des produits est à " . max($prix[0]). ".<br />";
@@ -59,13 +74,52 @@ function crawl($url){
     	<tr> 
       	<th>"; echo $nom[0][$i];
          echo"</th>
-      	<th>"; echo $prix[0][$i]; echo"</th>
+      	<th>"; echo $prix[0][$i] . " €"; echo"</th>
     	</tr>";
   	}
   echo" </table>";
+
+  class PDF extends FPDF
+  {
+    // En-tête
+    function Header()
+    {   
+      // Police Arial gras 15
+      $this->SetFont('Arial','B',15);
+      // Décalage à droite
+      $this->Cell(80);
+      // Titre
+      $this->Cell(30,10,'Reporting',1,0,'C');
+      // Saut de ligne
+      $this->Ln(20);
+    }
+    // Pied de page
+    function Footer()
+    {
+      // Positionnement à 1,5 cm du bas
+      $this->SetY(-15);
+      // Police Arial italique 8
+      $this->SetFont('Arial','I',8);
+      // Numéro de page
+      $this->Cell(0,10,'Page '.$this->PageNo().'/{nb}',0,0,'C');
+    }
+  }
+  $pdf = new PDF();
+  $pdf->AliasNbPages();
+  $pdf->AddPage();
+  $pdf->SetFont('Times','',12);
+  $pdf->Cell(55, 7, count($prix[0]). utf8_decode(" produits ont été parcourus."), 1, 1, 'C');
+  for($i=0; $i < count($prix[0]); $i++){
+    $pdf->Cell(180,7, utf8_decode($nom[0][$i]) ,0,0);
+    $pdf->Cell(40,6, utf8_decode($prix[0][$i]) . EURO ,0,1);
+  }
+  $pdf->Cell(80, 7, utf8_decode("Le moins cher des produits est à ") . min($prix[0]) . EURO, 1, 0);
+  $pdf->Cell(80, 7, utf8_decode("Le plus cher des produits est à ") . max($prix[0]) . EURO, 1, 0);
+  $pdf->Output();
+  ob_end_flush(); 
   
-  //Les liens paginées 
- preg_match_all('#<li class="next" data-cerberus="lnk_plpProduit_paginationNext1"><a data-page="(.+)" href="http://www.laredoute.fr/pplp/?[a-zA-Z0-9_./-]/?[a-zA-Z0-9_./-]/?[a-zA-Z0-9_./-]+.aspx\?pgnt=[0-9]{1,2}"></a></li>#iU', $contenu, $liens_extraits);
+  //Je récupère le lien d'une page qui est paginée. 
+ preg_match_all('#(<li class="next" data-cerberus="lnk_plpProduit_paginationNext1"><a data-page="(.+)" href="http://www.laredoute.fr/?[a-zA-Z0-9_./-]+.aspx\?pgnt=[0-9]{1,2}"></a></li>|<a class="pageTextBoxRight pageColor positionRelative displayInlineBlock" title="Page suivante " href="http://www.emp-online.fr/?[a-zA-Z0-9_./-]"><span class="pageArrowRight iconset icon_simpleArrowRight"></span>Suivant</a>)#iU', $contenu, $liens_extraits);
   $liens_extraits[0] = preg_replace('#<li class="next" data-cerberus="lnk_plpProduit_paginationNext1">#', '', $liens_extraits[0]);
   $liens_extraits[0] = preg_replace('#<a data-page="([0-9])*"#', '', $liens_extraits[0]);
   $liens_extraits[0] = preg_replace('#href=#', '', $liens_extraits[0]);
@@ -79,6 +133,7 @@ function crawl($url){
 
   fclose($fp_donnees);
 
+  //Affichage de la page suivante à crawler.
   while(list(, $element) = each($tab_liens)){
     echo "Page suivante à Crawler : $element<br />\n";
   }
@@ -87,7 +142,8 @@ function crawl($url){
   }
   $fichier_liens = fopen('contenu_autre_page.txt', 'a');
 
- foreach ($tab_liens as $element){
+  //je parcours toutes les pages en fonction du nombre de pagination. 
+  foreach ($tab_liens as $element){
     ini_set('max_execution_time', 300);//5 minutes
     $suivant = file_get_contents($element);
     fputs($fichier_liens, $suivant);
@@ -95,8 +151,10 @@ function crawl($url){
   }
   fclose($fichier_liens);
 }
+//j'appelle ma fonction pour crawler ma page. 
 crawl($url);
 ?>
+
 
 
 
