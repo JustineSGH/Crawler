@@ -39,7 +39,7 @@ function crawl($url){
   $contenu = file_get_contents('contenu_page.txt');
   
   //extraction des prix grâce à une expression régulière
-  preg_match_all('#(<span class="final-price" data-cerberus="txt_plp_discountedPrice1"><span itemprop="price">(.*)</span>(.*)</span>|<strong class="final-price" data-cerberus="txt_plpProduit_discountedPrice1">(.*)</strong>|<meta itemprop="price" content="(.+)")#iU', $contenu, $prix);
+  preg_match_all('#(<span class="final-price" data-cerberus="txt_plp_discountedPrice1"> <span itemprop="price">(.*)</span>(.*)</span>|<strong class="final-price" data-cerberus="txt_plpProduit_discountedPrice1">(.*)</strong>|<meta itemprop="price" content="(.+)")#iU', $contenu, $prix);
   $prix[0] = preg_replace('#<strong class="final-price" data-cerberus="txt_plpProduit_discountedPrice1">#', '', $prix[0]);
   $prix[0] = preg_replace('#</strong>#', '', $prix[0]);
   $prix[0] = preg_replace('#<span class="final-price" data-cerberus="txt_plp_discountedPrice1"><span itemprop="price">#', '', $prix[0]);
@@ -47,22 +47,24 @@ function crawl($url){
   $prix[0] = preg_replace('#<meta itemprop="price" content=#', '', $prix[0]);
   $prix[0] = preg_replace('#"#', '', $prix[0]);
   $prix[0] = str_replace('€', '', $prix[0]);
-  
+
   //extraction des noms
-  preg_match_all('#(<h2 data-cerberus="txt_pdp_productName1" itemprop="name">(.+)</h2>|<div class="title" data-cerberus="lnk_plpProduit_productName1">(.+)</div>|<span class="title bold inline" itemprop="name">(.+)</span>)#iU', $contenu, $nom);
+  preg_match_all('#(<h2 data-cerberus="txt_pdp_productName1" itemprop="name">(.+)</h2>|<div class="title" data-cerberus="lnk_plpProduit_productName1">(.+)</div>|<span class="title bold inline" itemprop="name">(.+)</span>|<span>(.+)</span>)#iU', $contenu, $nom);
 
   //je remplace les informations dont je n'ai pas besoin.
+  $nom[0] = preg_replace('#<span class="bandBrand title bold" itemprop="brand">#',  '', $nom[0]);
   $nom[0] = preg_replace('#<h2 data-cerberus="txt_pdp_productName1" itemprop="name">#',  '', $nom[0]);
   $nom[0] = preg_replace('#</h2>#', '', $nom[0]);  
   $nom[0] = preg_replace('#<div class="title" data-cerberus="lnk_plpProduit_productName1">#',  '', $nom[0]);
   $nom[0] = preg_replace('#</div>#', '', $nom[0]); 
   $nom[0] = preg_replace('#<span class="title bold inline" itemprop="name">#',  '', $nom[0]);
+   $nom[0] = preg_replace('#<span>#', '', $nom[0]);
   $nom[0] = preg_replace('#</span>#', '', $nom[0]);
 
   //J'affiche ce que j'ai récupéré grâce aux regex.
   echo count($prix[0]). " produits ont été parcourus.<br />";
-  echo "Le moins cher des produits est à " . min($prix[0]) . ".<br />";
-  echo "Le plus cher des produits est à " . max($prix[0]). ".<br />";
+  echo "Le moins cher des produits est à " . min($prix[0]) . " €" . ".<br />";
+  echo "Le plus cher des produits est à " . max($prix[0]). " €" . ".<br />";
   echo "<table class='table table-bordered'>
     <tr>
       <th>Nom</th>
@@ -114,8 +116,6 @@ function crawl($url){
     crawl($element);
   }
   fclose($fichier_liens);
-  
-  
 }
 //j'appelle ma fonction pour crawler ma page. 
 crawl($url);
