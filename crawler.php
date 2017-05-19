@@ -1,3 +1,4 @@
+<?php session_start(); ?>
 <!DOCTYPE html>
 <html lang="fr">
   <head>
@@ -19,9 +20,7 @@
   </body>
 </html>
 <?php
-ob_start();
-require('fpdf/fpdf.php');
-define('EURO',chr(128));
+
  //Je récupère l'URL du site à crawler
 $url = $_POST['url'];
 
@@ -78,46 +77,11 @@ function crawl($url){
     	</tr>";
   	}
   echo" </table>";
+  //mise en session
+  $_SESSION['tableau_nom'] = $nom[0];
+  $_SESSION['tableau_prix'] = $prix[0];
 
-  class PDF extends FPDF
-  {
-    // En-tête
-    function Header()
-    {   
-      // Police Arial gras 15
-      $this->SetFont('Arial','B',15);
-      // Décalage à droite
-      $this->Cell(80);
-      // Titre
-      $this->Cell(30,10,'Reporting',1,0,'C');
-      // Saut de ligne
-      $this->Ln(20);
-    }
-    // Pied de page
-    function Footer()
-    {
-      // Positionnement à 1,5 cm du bas
-      $this->SetY(-15);
-      // Police Arial italique 8
-      $this->SetFont('Arial','I',8);
-      // Numéro de page
-      $this->Cell(0,10,'Page '.$this->PageNo().'/{nb}',0,0,'C');
-    }
-  }
-  $pdf = new PDF();
-  $pdf->AliasNbPages();
-  $pdf->AddPage();
-  $pdf->SetFont('Times','',12);
-  $pdf->Cell(55, 7, count($prix[0]). utf8_decode(" produits ont été parcourus."), 1, 1, 'C');
-  for($i=0; $i < count($prix[0]); $i++){
-    $pdf->Cell(180,7, utf8_decode($nom[0][$i]) ,0,0);
-    $pdf->Cell(40,6, utf8_decode($prix[0][$i]) . EURO ,0,1);
-  }
-  $pdf->Cell(80, 7, utf8_decode("Le moins cher des produits est à ") . min($prix[0]) . EURO, 1, 0);
-  $pdf->Cell(80, 7, utf8_decode("Le plus cher des produits est à ") . max($prix[0]) . EURO, 1, 0);
-  $pdf->Output();
-  ob_end_flush(); 
-  
+  echo "<a href='session.php' target='_blank'><input type='submit' value='Voir PDF'></a>";
   //Je récupère le lien d'une page qui est paginée. 
  preg_match_all('#(<li class="next" data-cerberus="lnk_plpProduit_paginationNext1"><a data-page="(.+)" href="http://www.laredoute.fr/?[a-zA-Z0-9_./-]+.aspx\?pgnt=[0-9]{1,2}"></a></li>|<a class="pageTextBoxRight pageColor positionRelative displayInlineBlock" title="Page suivante " href="http://www.emp-online.fr/?[a-zA-Z0-9_./-]"><span class="pageArrowRight iconset icon_simpleArrowRight"></span>Suivant</a>)#iU', $contenu, $liens_extraits);
   $liens_extraits[0] = preg_replace('#<li class="next" data-cerberus="lnk_plpProduit_paginationNext1">#', '', $liens_extraits[0]);
@@ -150,6 +114,8 @@ function crawl($url){
     crawl($element);
   }
   fclose($fichier_liens);
+  
+  
 }
 //j'appelle ma fonction pour crawler ma page. 
 crawl($url);
